@@ -1,8 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
 import App from './App';
+import { TonConnectUIProvider } from '@tonconnect/ui-react';
+import './styles.css';
 
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
-});
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+    <TonConnectUIProvider manifestUrl="https://your-app.com/tonconnect-manifest.json">
+        <App />
+    </TonConnectUIProvider>
+);
