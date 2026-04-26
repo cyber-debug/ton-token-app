@@ -19,7 +19,7 @@ function getManifestUrl() {
         typeof window !== 'undefined' &&
         (window.location.hostname.endsWith('github.io') || window.location.hostname.endsWith('pages.dev'))
     ) {
-        return './tonconnect-manifest.json';
+        return new URL('tonconnect-manifest.json', window.location.href).toString();
     }
 
     return '/api/tonconnect-manifest';
