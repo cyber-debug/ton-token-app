@@ -35,7 +35,7 @@ jobs:
         run: npm run build
         env:
           REACT_APP_ROUTER_MODE: hash
-          REACT_APP_TONCONNECT_MANIFEST_URL: ./tonconnect-manifest.json
+          REACT_APP_TONCONNECT_MANIFEST_URL: https://cyber-debug.github.io/ton-token-app/tonconnect-manifest.json
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
