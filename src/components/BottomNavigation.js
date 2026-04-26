@@ -1,35 +1,24 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { FaHome, FaExchangeAlt, FaWallet } from 'react-icons/fa'; // Иконки
+import { NavLink } from 'react-router-dom';
+import { FaHome, FaExchangeAlt, FaWallet } from 'react-icons/fa';
 import './BottomNavigation.css';
 
 function BottomNavigation() {
-    const location = useLocation(); // Получаем текущий путь
-
-    // Функция для проверки активного пути
-    const isActive = (path) => location.pathname === path;
-
     return (
-        <div className="bottom-navigation">
-            <Link
-                to="/"
-                className={`nav-button ${isActive('/') ? 'active' : ''}`}
-            >
-                <FaHome size={24} /> {/* Иконка дома */}
-            </Link>
-            <Link
-                to="/trade"
-                className={`nav-button ${isActive('/trade') ? 'active' : ''}`}
-            >
-                <FaExchangeAlt size={24} /> {/* Иконка обмена */}
-            </Link>
-            <Link
-                to="/profile"
-                className={`nav-button ${isActive('/profile') ? 'active' : ''}`}
-            >
-                <FaWallet size={24} /> {/* Иконка кошелька */}
-            </Link>
-        </div>
+        <nav className="bottom-navigation" aria-label="Primary">
+            <NavLink to="/" end className={({ isActive }) => `nav-button ${isActive ? 'active' : ''}`}>
+                <FaHome className="nav-icon" />
+                <span className="nav-label">Home</span>
+            </NavLink>
+            <NavLink to="/trade" className={({ isActive }) => `nav-button ${isActive ? 'active' : ''}`}>
+                <FaExchangeAlt className="nav-icon" />
+                <span className="nav-label">Trade</span>
+            </NavLink>
+            <NavLink to="/profile" className={({ isActive }) => `nav-button ${isActive ? 'active' : ''}`}>
+                <FaWallet className="nav-icon" />
+                <span className="nav-label">Profile</span>
+            </NavLink>
+        </nav>
     );
 }
 

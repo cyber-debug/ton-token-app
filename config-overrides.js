@@ -10,6 +10,7 @@ module.exports = function override(config, env) {
 
     // Добавляем поддержку fallback для Node.js модулей
     config.resolve.fallback = {
+        ...(config.resolve.fallback || {}),
         buffer: require.resolve('buffer'),
         crypto: require.resolve('crypto-browserify'),
         stream: require.resolve('stream-browserify'),
