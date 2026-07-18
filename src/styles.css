@@ -85,6 +85,34 @@ button {
     padding-bottom: 110px;
 }
 
+.environment-banner {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 9px 16px;
+    border-bottom: 1px solid rgba(106, 168, 255, 0.24);
+    background: rgba(10, 28, 52, 0.9);
+    color: var(--muted-strong);
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+}
+
+.environment-banner strong {
+    color: #a9caff;
+    text-transform: uppercase;
+}
+
+.environment-banner-demo {
+    border-color: rgba(245, 201, 106, 0.28);
+    background: rgba(52, 39, 10, 0.9);
+}
+
+.environment-banner-demo strong {
+    color: var(--accent-3);
+}
+
 .app-backdrop {
     position: fixed;
     inset: 0;

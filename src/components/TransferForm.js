@@ -3,7 +3,7 @@ import { toNano } from '@ton/core';
 import { useTonConnectModal, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { FaPaperPlane, FaShieldAlt, FaWallet } from 'react-icons/fa';
 import { apiRequest } from '../lib/api';
-import { buildOfflineTransferDraft } from '../lib/offline';
+import { APP_CONFIG } from '../config';
 
 function TransferForm() {
     const wallet = useTonWallet();
@@ -14,7 +14,9 @@ function TransferForm() {
     const [memo, setMemo] = useState('');
     const [status, setStatus] = useState({
         type: 'idle',
-        message: 'The backend validates transfer details before the wallet signs them.',
+        message: APP_CONFIG.demoMode
+            ? 'Transfers are disabled while demo data is enabled.'
+            : 'The backend validates transfer details before the wallet signs them.',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,6 +37,11 @@ function TransferForm() {
     const handleTransfer = async (event) => {
         event.preventDefault();
 
+        if (APP_CONFIG.demoMode) {
+            setStatus({ type: 'idle', message: 'Disable demo mode before preparing a transfer.' });
+            return;
+        }
+
         if (!wallet) {
             await openWalletModal();
             return;
@@ -52,13 +59,6 @@ function TransferForm() {
                     amount: amountValue,
                     memo,
                 },
-                fallback: () => ({
-                    transferDraft: buildOfflineTransferDraft({
-                        recipient,
-                        amountTon: amountValue,
-                        memo,
-                    }),
-                }),
             });
 
             await tonConnectUI.sendTransaction({
@@ -98,7 +98,9 @@ function TransferForm() {
             <div className="section-header">
                 <div>
                     <div className="section-kicker">Send TON</div>
-                    <h2 className="section-title">Validated by the backend, signed by the wallet</h2>
+                    <h2 className="section-title">
+                        {APP_CONFIG.demoMode ? 'Transfer preview disabled in demo mode' : 'Validated by the backend, signed by the wallet'}
+                    </h2>
                 </div>
                 <span className="pill">
                     <FaShieldAlt /> Secure flow
@@ -148,8 +150,9 @@ function TransferForm() {
             </label>
 
             <div className="form-actions">
-                <button type="submit" className="primary-button" disabled={isSubmitting}>
-                    <FaPaperPlane /> {isSubmitting ? 'Submitting...' : wallet ? 'Transfer funds' : 'Connect wallet'}
+                <button type="submit" className="primary-button" disabled={isSubmitting || APP_CONFIG.demoMode}>
+                    <FaPaperPlane />{' '}
+                    {APP_CONFIG.demoMode ? 'Disabled in demo mode' : isSubmitting ? 'Submitting...' : wallet ? 'Transfer funds' : 'Connect wallet'}
                 </button>
                 <button type="button" className="secondary-button" onClick={openWalletModal}>
                     Connect wallet

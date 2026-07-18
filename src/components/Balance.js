@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiRequest } from '../lib/api';
 import { buildOfflineBalance } from '../lib/offline';
+import { APP_CONFIG } from '../config';
 
 const NANO_TON = 1_000_000_000n;
 
@@ -73,11 +74,14 @@ function Balance({ address }) {
                     </div>
                 </div>
                 <span className={`status-chip ${address ? 'status-chip-positive' : 'status-chip-neutral'}`}>
-                    {address ? 'Live' : 'Disconnected'}
+                    {APP_CONFIG.demoMode ? 'Demo' : address ? 'Live' : 'Disconnected'}
                 </span>
             </div>
             <p className="small balance-note">
-                {error || (address ? `Account ${address.slice(0, 6)}…${address.slice(-4)}` : 'Connect a wallet to unlock your account data.')}
+                {error ||
+                    (address
+                        ? `${APP_CONFIG.demoMode ? 'Demo account' : 'Account'} ${address.slice(0, 6)}…${address.slice(-4)}`
+                        : 'Connect a wallet to unlock your account data.')}
             </p>
         </div>
     );

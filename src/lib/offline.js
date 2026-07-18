@@ -1,5 +1,3 @@
-import { Address, toNano } from '@ton/core';
-
 function hashString(value) {
     let hash = 0;
 
@@ -75,18 +73,6 @@ export function buildOfflineQuote({ side, amountTon, market = buildOfflineMarket
     };
 }
 
-export function buildOfflineTransferDraft({ recipient, amountTon, memo }) {
-    const parsedAddress = Address.parse(recipient);
-    return {
-        draftId: `offline-${hashString(`${recipient}:${amountTon}:${memo}`)}`,
-        recipient: parsedAddress.toString(),
-        amountTon,
-        amountNano: toNano(amountTon).toString(),
-        memo: memo || null,
-        createdAt: new Date().toISOString(),
-    };
-}
-
 export function buildOfflineDashboard(walletAddress = '') {
     return {
         market: buildOfflineMarket(),
@@ -101,9 +87,9 @@ export function buildOfflineDashboard(walletAddress = '') {
             {
                 id: `offline-${hashString(walletAddress || 'wallet')}-transfer`,
                 type: 'transfer',
-                title: 'Transfer flow ready',
-                meta: 'Wallet signing still works without the backend',
-                value: 'Ready',
+                title: 'Transfers disabled',
+                meta: 'Live backend mode is required for wallet actions',
+                value: 'Demo mode',
             },
         ],
         health: null,

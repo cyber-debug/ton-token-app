@@ -12,6 +12,7 @@ import {
 import { Line } from 'react-chartjs-2';
 import { apiRequest } from '../lib/api';
 import { buildOfflineHistory, buildOfflineMarket } from '../lib/offline';
+import { APP_CONFIG } from '../config';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
@@ -56,7 +57,7 @@ function TradingViewChart() {
 
                 setMarket(marketResponse.market);
                 setSeries(Array.isArray(historyResponse.series) && historyResponse.series.length ? historyResponse.series : []);
-                setStatus('Live market feed connected.');
+                setStatus(APP_CONFIG.demoMode ? 'Demo market series shown.' : 'Live market feed connected.');
             } catch (error) {
                 if (!mounted) {
                     return;
@@ -152,7 +153,7 @@ function TradingViewChart() {
                     <div className="section-kicker">Live market</div>
                     <h2 className="section-title">TON / USD pulse</h2>
                 </div>
-                <span className="pill">Backend chart</span>
+                <span className="pill">{APP_CONFIG.demoMode ? 'Demo chart' : 'Backend chart'}</span>
             </div>
             <div className="market-chart-shell">
                 <div className="market-chart-legend">

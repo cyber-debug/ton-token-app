@@ -51,11 +51,20 @@ npm start
 
 ## Environment
 
-The repo now keeps the frontend free of wallet secrets. Use the following environment variables when needed:
+Copy `.env.example` to `.env` for local development. The local `.env` file is ignored by Git and must never be committed.
+
+The application defaults to TON testnet and live API mode. Use the following environment variables when needed:
 
 - `BACKEND_PORT` - backend port, default `3001`
 - `BACKEND_HOST` - backend host, default `127.0.0.1`
+- `TRUST_PROXY_HOPS` - trusted reverse-proxy hops, default `0`
+- `TON_NETWORK` - backend TON network, `testnet` or `mainnet`, default `testnet`
+- `TONCENTER_API_BASE_URL` - optional TON Center API override
+- `COINGECKO_API_BASE_URL` - optional CoinGecko API override
 - `REACT_APP_API_BASE_URL` - optional backend URL override for the frontend
+- `REACT_APP_TON_NETWORK` - frontend TON network, `testnet` or `mainnet`, default `testnet`
+- `REACT_APP_DEMO_MODE` - enables clearly labeled local demo data; default `false`
+- `REACT_APP_ROUTER_MODE` - `auto`, `browser`, or `hash`
 - `REACT_APP_TONCONNECT_MANIFEST_URL` - optional manifest override
 - `APP_PUBLIC_URL` - optional absolute public URL used by the backend manifest route
 - `CORS_ORIGIN` - optional comma-separated list of allowed origins
@@ -66,6 +75,8 @@ Example:
 ```bash
 REACT_APP_API_BASE_URL=http://127.0.0.1:3001 npm start
 ```
+
+Demo mode is intentionally separate from live mode. It may provide simulated balances, market data, and quote previews, but wallet transfers remain disabled. API failures in live mode are surfaced as errors instead of silently switching to demo data.
 
 ## Backend Endpoints
 
@@ -107,8 +118,9 @@ If you deploy the frontend and backend separately, point `REACT_APP_API_BASE_URL
 
 ## GitHub Pages
 
-The repository includes a GitHub Actions workflow in `.github/workflows/deploy-pages.yml` to publish the frontend to GitHub Pages.
+The repository includes a manual GitHub Actions workflow in `.github/workflows/deploy-pages.yml`. It does not run on pushes, preventing accidental deployment while the beta is under development.
 
 - The Pages build uses hash routing so refreshes and deep links keep working.
-- If the backend is not available, the app falls back to offline demo data instead of crashing.
+- The Pages workflow explicitly enables demo mode because it publishes only the static frontend.
+- Demo mode is labeled in the UI and disables wallet transfers.
 - TonConnect manifest metadata is set up for the GitHub Pages site URL in the static manifest file.

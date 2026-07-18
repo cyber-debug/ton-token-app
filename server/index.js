@@ -9,9 +9,8 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const { Address, toNano } = require('@ton/core');
+const config = require('./config');
 
-const PORT = Number(process.env.BACKEND_PORT || 3001);
-const HOST = process.env.BACKEND_HOST || (process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1');
 const API_PREFIX = '/api';
 const MARKET_TTL_MS = 30_000;
 const HISTORY_TTL_MS = 60_000;
@@ -21,7 +20,7 @@ const RATE_LIMIT_MAX = 240;
 
 const app = express();
 app.disable('x-powered-by');
-app.set('trust proxy', 1);
+app.set('trust proxy', config.trustProxyHops);
 
 app.use(
     helmet({
@@ -31,12 +30,10 @@ app.use(
 );
 app.use(compression());
 app.use(express.json({ limit: '1mb' }));
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+app.use(morgan(config.isProduction ? 'combined' : 'dev'));
 app.use(
     cors({
-        origin: process.env.CORS_ORIGIN
-            ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim())
-            : false,
+        origin: config.corsOrigins.length ? config.corsOrigins : false,
     })
 );
 
@@ -79,11 +76,7 @@ const balanceCache = new Map();
 const activityLog = [];
 
 function getRequestOrigin(req) {
-    const forwardedProto = req.headers['x-forwarded-proto'];
-    const proto = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto || req.protocol;
-    const host = req.headers['x-forwarded-host'] || req.get('host');
-
-    return process.env.APP_PUBLIC_URL || `${proto}://${host}`;
+    return config.appPublicUrl || `${req.protocol}://${req.get('host')}`;
 }
 
 function cacheEntryIsFresh(entry, ttlMs) {
@@ -118,7 +111,7 @@ async function getTonMarket() {
     }
 
     const data = await fetchJson(
-        'https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd,eur&include_24hr_change=true&include_market_cap=true'
+        `${config.coingeckoApiBaseUrl}/simple/price?ids=the-open-network&vs_currencies=usd,eur&include_24hr_change=true&include_market_cap=true`
     );
 
     const snapshot = data['the-open-network'];
@@ -159,7 +152,7 @@ async function getTonHistory(days = 1) {
 
     try {
         const data = await fetchJson(
-            `https://api.coingecko.com/api/v3/coins/the-open-network/market_chart?vs_currency=usd&days=${encodeURIComponent(
+            `${config.coingeckoApiBaseUrl}/coins/the-open-network/market_chart?vs_currency=usd&days=${encodeURIComponent(
                 days
             )}&interval=hourly`
         );
@@ -191,9 +184,10 @@ async function getWalletBalance(address) {
         return cached.data;
     }
 
-    const apiKey = process.env.TONCENTER_API_KEY ? `&api_key=${encodeURIComponent(process.env.TONCENTER_API_KEY)}` : '';
+    const headers = config.toncenterApiKey ? { 'X-API-Key': config.toncenterApiKey } : undefined;
     const data = await fetchJson(
-        `https://toncenter.com/api/v2/getAddressBalance?address=${encodeURIComponent(address)}${apiKey}`
+        `${config.toncenterApiBaseUrl}/getAddressBalance?address=${encodeURIComponent(address)}`,
+        { headers }
     );
 
     const balance = {
@@ -263,7 +257,8 @@ app.get(`${API_PREFIX}/health`, (req, res) => {
     res.json({
         ok: true,
         service: 'vorix-wallet-api',
-        environment: process.env.NODE_ENV || 'development',
+        environment: config.nodeEnv,
+        network: config.tonNetwork,
         uptimeSeconds: Math.round(process.uptime()),
         timestamp: new Date().toISOString(),
     });
@@ -414,8 +409,8 @@ if (fs.existsSync(buildPath)) {
 }
 
 if (require.main === module) {
-    app.listen(PORT, HOST, () => {
-        console.log(`VORIX API listening on http://${HOST}:${PORT}`);
+    app.listen(config.port, config.host, () => {
+        console.log(`VORIX API listening on http://${config.host}:${config.port} (${config.tonNetwork})`);
     });
 }
 

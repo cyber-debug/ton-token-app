@@ -1,7 +1,7 @@
-const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || '').replace(/\/$/, '');
+import { APP_CONFIG } from '../config';
 
 export function buildApiUrl(path, params = {}) {
-    const url = `${API_BASE_URL}${path}`;
+    const url = `${APP_CONFIG.apiBaseUrl}${path}`;
     const query = new URLSearchParams();
 
     Object.entries(params).forEach(([key, value]) => {
@@ -32,7 +32,7 @@ export async function apiRequest(path, { method = 'GET', params, body, signal, f
 
         return payload;
     } catch (error) {
-        if (fallback !== undefined) {
+        if (fallback !== undefined && APP_CONFIG.demoMode) {
             return typeof fallback === 'function' ? fallback(error) : fallback;
         }
 

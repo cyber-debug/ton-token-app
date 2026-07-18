@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useTonConnectModal, useTonWallet } from '@tonconnect/ui-react';
 import { apiRequest } from '../lib/api';
 import { buildOfflineDashboard } from '../lib/offline';
+import { APP_CONFIG } from '../config';
 import './Profile.css';
 
 function Profile() {
@@ -30,11 +31,12 @@ function Profile() {
             })
             .catch(() => {
                 if (mounted) {
-                    const fallback = buildOfflineDashboard();
-                    setDashboard({
-                        activity: fallback.activity,
-                        health: fallback.health,
-                    });
+                    if (APP_CONFIG.demoMode) {
+                        const fallback = buildOfflineDashboard();
+                        setDashboard({ activity: fallback.activity, health: fallback.health });
+                    } else {
+                        setDashboard({ activity: [], health: null });
+                    }
                 }
             });
 
@@ -68,11 +70,7 @@ function Profile() {
               value: entry.value,
               meta: entry.meta,
           }))
-        : [
-              { label: 'Incoming transfer', value: '+120.0 TON', meta: 'Today' },
-              { label: 'Trading preview', value: 'Ready', meta: 'Live market desk' },
-              { label: 'Transfer security', value: 'Wallet signed', meta: 'No private key exposure' },
-          ];
+        : [{ label: 'No activity yet', value: '—', meta: APP_CONFIG.demoMode ? 'Demo mode' : 'Waiting for backend data' }];
 
     return (
         <div className="stack profile-shell">
@@ -117,7 +115,7 @@ function Profile() {
                     </div>
                     <div className="info-row">
                         <span>API health</span>
-                        <strong>{dashboard.health ? 'Online' : 'Offline'}</strong>
+                        <strong>{APP_CONFIG.demoMode ? 'Demo' : dashboard.health ? 'Online' : 'Offline'}</strong>
                     </div>
                 </div>
             </section>
@@ -164,7 +162,7 @@ function Profile() {
                             </div>
                             <div className="info-row">
                                 <span>Protection</span>
-                                <strong>Backend-validated actions</strong>
+                                <strong>{APP_CONFIG.demoMode ? 'Transfers disabled' : 'Backend-validated actions'}</strong>
                             </div>
                         </div>
                     </div>

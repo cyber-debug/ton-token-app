@@ -6,6 +6,7 @@ import Trade from './pages/Trade';
 import Profile from './pages/Profile';
 import BottomNavigation from './components/BottomNavigation';
 import AppErrorBoundary from './components/AppErrorBoundary';
+import { APP_CONFIG } from './config';
 import './styles.css';
 
 const pageTransition = {
@@ -30,6 +31,10 @@ function App() {
         <AppErrorBoundary>
             <div className="app-shell">
                 <div className="app-backdrop" aria-hidden="true" />
+                <div className={`environment-banner ${APP_CONFIG.demoMode ? 'environment-banner-demo' : ''}`}>
+                    <strong>{APP_CONFIG.tonNetworkLabel}</strong>
+                    <span>{APP_CONFIG.demoMode ? 'Demo data enabled · transfers disabled' : 'Live API mode'}</span>
+                </div>
                 <AnimatePresence mode="wait">
                     <Routes location={location} key={location.pathname}>
                         <Route

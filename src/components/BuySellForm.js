@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FaChartLine, FaSyncAlt } from 'react-icons/fa';
 import { apiRequest } from '../lib/api';
 import { buildOfflineMarket, buildOfflineQuote } from '../lib/offline';
+import { APP_CONFIG } from '../config';
 
 function BuySellForm() {
     const [amount, setAmount] = useState('10');
@@ -44,7 +45,9 @@ function BuySellForm() {
                     setQuote(data.quote);
                     setStatus({
                         type: 'success',
-                        message: `Live ${side} quote loaded from the backend.`,
+                        message: APP_CONFIG.demoMode
+                            ? `Demo ${side} quote calculated locally.`
+                            : `Live ${side} quote loaded from the backend.`,
                     });
                 }
             } catch (error) {
@@ -86,7 +89,7 @@ function BuySellForm() {
             setQuote(data.quote);
             setStatus({
                 type: 'success',
-                message: `Live ${side} quote refreshed.`,
+                message: APP_CONFIG.demoMode ? `Demo ${side} quote refreshed.` : `Live ${side} quote refreshed.`,
             });
         } catch (error) {
             setStatus({
@@ -105,10 +108,12 @@ function BuySellForm() {
             <div className="section-header">
                 <div>
                     <div className="section-kicker">Trade preview</div>
-                    <h2 className="section-title">Server-priced buy and sell quotes</h2>
+                    <h2 className="section-title">
+                        {APP_CONFIG.demoMode ? 'Local quote simulation' : 'Server-priced buy and sell quotes'}
+                    </h2>
                 </div>
                 <span className="pill">
-                    <FaChartLine /> Backend pricing
+                    <FaChartLine /> {APP_CONFIG.demoMode ? 'Demo pricing' : 'Backend pricing'}
                 </span>
             </div>
 

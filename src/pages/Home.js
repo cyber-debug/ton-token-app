@@ -6,6 +6,7 @@ import { useTonConnectModal, useTonWallet } from '@tonconnect/ui-react';
 import Balance from '../components/Balance';
 import { apiRequest } from '../lib/api';
 import { buildOfflineDashboard } from '../lib/offline';
+import { APP_CONFIG } from '../config';
 import './Home.css';
 
 const fadeUp = {
@@ -60,7 +61,7 @@ function Home() {
             })
             .catch(() => {
                 if (mounted) {
-                    setDashboard(buildOfflineDashboard());
+                    setDashboard(APP_CONFIG.demoMode ? buildOfflineDashboard() : { market: null, activity: [], health: null });
                 }
             });
 
@@ -114,7 +115,7 @@ function Home() {
     const snapshot = [
         { label: 'Wallet status', value: wallet ? 'Connected' : 'Disconnected' },
         { label: 'TON price', value: dashboard.market ? `$${dashboard.market.priceUsd.toFixed(2)}` : 'Loading...' },
-        { label: 'API status', value: dashboard.health ? 'Online' : 'Offline' },
+        { label: 'API status', value: APP_CONFIG.demoMode ? 'Demo' : dashboard.health ? 'Online' : 'Offline' },
     ];
 
     const activity = dashboard.activity.length

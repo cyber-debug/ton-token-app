@@ -5,6 +5,7 @@ import BuySellForm from '../components/BuySellForm';
 import TransferForm from '../components/TransferForm';
 import { apiRequest } from '../lib/api';
 import { buildOfflineDashboard } from '../lib/offline';
+import { APP_CONFIG } from '../config';
 
 function Trade() {
     const [dashboard, setDashboard] = React.useState({ market: null, health: null });
@@ -27,11 +28,12 @@ function Trade() {
             })
             .catch(() => {
                 if (mounted) {
-                    const fallback = buildOfflineDashboard();
-                    setDashboard({
-                        market: fallback.market,
-                        health: fallback.health,
-                    });
+                    if (APP_CONFIG.demoMode) {
+                        const fallback = buildOfflineDashboard();
+                        setDashboard({ market: fallback.market, health: fallback.health });
+                    } else {
+                        setDashboard({ market: null, health: null });
+                    }
                 }
             });
 
@@ -50,13 +52,15 @@ function Trade() {
                         Review live charts, preview quotes, and move funds without leaving the TON Connect flow.
                     </p>
                 </div>
-                <span className="pill">Live + secure</span>
+                <span className="pill">{APP_CONFIG.demoMode ? 'Demo preview' : 'Live API mode'}</span>
             </header>
 
             <section className="metric-grid">
                 <div className="metric-card">
                     <div className="metric-label">Execution model</div>
-                    <div className="metric-value metric-value-sm">Wallet signed</div>
+                    <div className="metric-value metric-value-sm">
+                        {APP_CONFIG.demoMode ? 'Disabled in demo' : 'Wallet signed'}
+                    </div>
                 </div>
                 <div className="metric-card">
                     <div className="metric-label">Market view</div>
@@ -68,7 +72,9 @@ function Trade() {
                 </div>
                 <div className="metric-card">
                     <div className="metric-label">Backend</div>
-                    <div className="metric-value metric-value-sm">{dashboard.health ? 'Online' : 'Offline'}</div>
+                    <div className="metric-value metric-value-sm">
+                        {APP_CONFIG.demoMode ? 'Demo' : dashboard.health ? 'Online' : 'Offline'}
+                    </div>
                 </div>
                 <div className="metric-card">
                     <div className="metric-label">TON price</div>
