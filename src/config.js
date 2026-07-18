@@ -51,6 +51,23 @@ function readUrlOrPath(name, fallback = '', { optional = false } = {}) {
     return value;
 }
 
+const STATIC_HOST_SUFFIXES = Object.freeze(['github.io', 'pages.dev']);
+
+function isStaticHostingHost() {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    const host = window.location.hostname;
+
+    // Match the exact apex host (e.g. "github.io") or a genuine subdomain
+    // (e.g. "user.github.io"). A plain substring/suffix check would wrongly
+    // accept attacker-controlled hosts such as "evilgithub.io".
+    return STATIC_HOST_SUFFIXES.some(
+        (suffix) => host === suffix || host.endsWith(`.${suffix}`)
+    );
+}
+
 const networkName = readEnum('REACT_APP_TON_NETWORK', Object.keys(NETWORKS), 'testnet');
 const network = NETWORKS[networkName];
 
@@ -69,14 +86,17 @@ export function getTonConnectManifestUrl() {
         return APP_CONFIG.tonConnectManifestUrl;
     }
 
-    if (
-        typeof window !== 'undefined' &&
-        (window.location.hostname.endsWith('github.io') || window.location.hostname.endsWith('pages.dev'))
-    ) {
-        return new URL('tonconnect-manifest.json', window.location.href).toString();
+    if (!isStaticHostingHost()) {
+        return '/api/tonconnect-manifest';
     }
 
-    return '/api/tonconnect-manifest';
+    try {
+        const origin = window.location.origin;
+        return new URL('tonconnect-manifest.json', origin).toString();
+    } catch (error) {
+        console.warn('Failed to build manifest URL:', error);
+        return '/api/tonconnect-manifest';
+    }
 }
 
 export function shouldUseHashRouter() {
@@ -84,8 +104,5 @@ export function shouldUseHashRouter() {
         return APP_CONFIG.routerMode === 'hash';
     }
 
-    return (
-        typeof window !== 'undefined' &&
-        (window.location.hostname.endsWith('github.io') || window.location.hostname.endsWith('pages.dev'))
-    );
+    return isStaticHostingHost();
 }

@@ -24,7 +24,22 @@ app.set('trust proxy', config.trustProxyHops);
 
 app.use(
     helmet({
-        contentSecurityPolicy: false,
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'", "'unsafe-inline'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                imgSrc: ["'self'", "data:", "https:", "blob:"],
+                connectSrc: ["'self'", "https:", "wss:", "blob:"],
+                fontSrc: ["'self'", "https:", "data:"],
+                objectSrc: ["'none'"],
+                mediaSrc: ["'self'"],
+                frameSrc: ["'none'"],
+                childSrc: ["'none'"],
+                formAction: ["'self'"],
+                baseUri: ["'self'"],
+            },
+        },
         crossOriginEmbedderPolicy: false,
     })
 );
@@ -397,7 +412,7 @@ app.use((error, req, res, next) => {
 const buildPath = path.join(__dirname, '..', 'build');
 
 if (fs.existsSync(buildPath)) {
-    app.use(express.static(buildPath, { maxAge: '7d', immutable: true }));
+    app.use(rateLimit(600), express.static(buildPath, { maxAge: '7d', immutable: true }));
 
     app.get('*', rateLimit(), (req, res, next) => {
         if (req.path.startsWith(API_PREFIX)) {
