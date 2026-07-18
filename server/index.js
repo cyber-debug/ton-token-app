@@ -399,7 +399,7 @@ const buildPath = path.join(__dirname, '..', 'build');
 if (fs.existsSync(buildPath)) {
     app.use(express.static(buildPath, { maxAge: '7d', immutable: true }));
 
-    app.get('*', (req, res, next) => {
+    app.get('*', rateLimit(), (req, res, next) => {
         if (req.path.startsWith(API_PREFIX)) {
             return next();
         }
