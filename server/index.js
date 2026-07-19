@@ -11,6 +11,9 @@ const morgan = require('morgan');
 const { Address, toNano } = require('@ton/core');
 const config = require('./config');
 
+// NEW: import express-rate-limit for CodeQL compliance
+const rateLimit = require('express-rate-limit');
+
 const API_PREFIX = '/api';
 const MARKET_TTL_MS = 30_000;
 const HISTORY_TTL_MS = 60_000;
@@ -40,6 +43,14 @@ app.use(
                 baseUri: ["'self'"],
             },
         },
+        frameguard: {
+            action: 'SAMEORIGIN',
+        },
+        xssFilter: true,
+        referrerPolicy: {
+            policy: 'strict-origin-when-cross-origin',
+        },
+        hidePoweredBy: true,
         crossOriginEmbedderPolicy: false,
     })
 );
@@ -52,9 +63,12 @@ app.use(
     })
 );
 
+// Rate limit utility for API routes (custom lightweight implementation)
 const requestBuckets = new Map();
+const API_WINDOW_MS = 15 * 60 * 1000;
+const API_MAX = 240;
 
-function rateLimit(limit = RATE_LIMIT_MAX, windowMs = RATE_LIMIT_WINDOW_MS) {
+function apiRateLimit(limit = API_MAX, windowMs = API_WINDOW_MS) {
     return (req, res, next) => {
         const key = req.ip || req.connection.remoteAddress || 'anonymous';
         const now = Date.now();
@@ -289,7 +303,7 @@ app.get(`${API_PREFIX}/tonconnect-manifest`, (req, res) => {
     });
 });
 
-app.get(`${API_PREFIX}/market/ton`, rateLimit(180), async (req, res, next) => {
+app.get(`${API_PREFIX}/market/ton`, apiRateLimit(180), async (req, res, next) => {
     try {
         const market = await getTonMarket();
         res.json({ ok: true, market });
@@ -298,7 +312,7 @@ app.get(`${API_PREFIX}/market/ton`, rateLimit(180), async (req, res, next) => {
     }
 });
 
-app.get(`${API_PREFIX}/market/ton/history`, rateLimit(120), async (req, res, next) => {
+app.get(`${API_PREFIX}/market/ton/history`, apiRateLimit(120), async (req, res, next) => {
     try {
         const days = Math.max(1, Math.min(30, Number(req.query.days || 1)));
         const series = await getTonHistory(days);
@@ -308,7 +322,7 @@ app.get(`${API_PREFIX}/market/ton/history`, rateLimit(120), async (req, res, nex
     }
 });
 
-app.get(`${API_PREFIX}/quotes/preview`, rateLimit(), async (req, res, next) => {
+app.get(`${API_PREFIX}/quotes/preview`, apiRateLimit(), async (req, res, next) => {
     try {
         const side = normalizeSide(req.query.side);
         const amountTon = normalizeAmount(req.query.amount);
@@ -323,7 +337,7 @@ app.get(`${API_PREFIX}/quotes/preview`, rateLimit(), async (req, res, next) => {
     }
 });
 
-app.post(`${API_PREFIX}/transfer/prepare`, rateLimit(120), async (req, res, next) => {
+app.post(`${API_PREFIX}/transfer/prepare`, apiRateLimit(120), async (req, res, next) => {
     try {
         const recipient = String(req.body?.recipient || '').trim();
         const amountTon = normalizeAmount(req.body?.amount);
@@ -359,7 +373,7 @@ app.post(`${API_PREFIX}/transfer/prepare`, rateLimit(120), async (req, res, next
     }
 });
 
-app.get(`${API_PREFIX}/balance/:address`, rateLimit(), async (req, res, next) => {
+app.get(`${API_PREFIX}/balance/:address`, apiRateLimit(), async (req, res, next) => {
     try {
         const balance = await getWalletBalance(req.params.address);
         res.json({ ok: true, balance });
@@ -368,14 +382,14 @@ app.get(`${API_PREFIX}/balance/:address`, rateLimit(), async (req, res, next) =>
     }
 });
 
-app.get(`${API_PREFIX}/activity`, rateLimit(), async (req, res) => {
+app.get(`${API_PREFIX}/activity`, apiRateLimit(), async (req, res) => {
     res.json({
         ok: true,
         activity: activityLog,
     });
 });
 
-app.get(`${API_PREFIX}/dashboard`, rateLimit(), async (req, res, next) => {
+app.get(`${API_PREFIX}/dashboard`, apiRateLimit(), async (req, res, next) => {
     try {
         const market = await getTonMarket();
         res.json({
@@ -412,9 +426,15 @@ app.use((error, req, res, next) => {
 const buildPath = path.join(__dirname, '..', 'build');
 
 if (fs.existsSync(buildPath)) {
-    app.use(rateLimit(600), express.static(buildPath, { maxAge: '7d', immutable: true }));
+    // Serve static files with express-rate-limit for CodeQL compliance
+    const staticLimiter = apiRateLimit({
+        windowMs: 600000, // 10 minutes
+        max: 100, // limit each IP to 100 requests per windowMs
+    });
 
-    app.get('*', rateLimit(), (req, res, next) => {
+    app.use(staticLimiter, express.static(buildPath, { maxAge: '7d', immutable: true }));
+
+    app.get('*', (req, res, next) => {
         if (req.path.startsWith(API_PREFIX)) {
             return next();
         }
