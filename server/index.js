@@ -65,33 +65,37 @@ app.use(
 
 // Rate limit utility for API routes (custom lightweight implementation)
 const requestBuckets = new Map();
-const API_WINDOW_MS = 15 * 60 * 1000;
-const API_MAX = 240;
 
-function apiRateLimit(limit = API_MAX, windowMs = API_WINDOW_MS) {
-    return (req, res, next) => {
-        const key = req.ip || req.connection.remoteAddress || 'anonymous';
-        const now = Date.now();
-        const bucket = requestBuckets.get(key) || { count: 0, expiresAt: now + windowMs };
+// Custom rate limit implementation for API routes with configurable limits
+function apiRateLimit(options) {
+  const {
+    windowMs = 15 * 60 * 1000, // 15 minutes default
+    max = 240,               // 240 requests per window default
+  } = options || {};
 
-        if (bucket.expiresAt <= now) {
-            bucket.count = 0;
-            bucket.expiresAt = now + windowMs;
-        }
+  return (req, res, next) => {
+    const key = req.ip || req.connection.remoteAddress || 'anonymous';
+    const now = Date.now();
+    const bucket = requestBuckets.get(key) || { count: 0, expiresAt: now + windowMs };
 
-        bucket.count += 1;
-        requestBuckets.set(key, bucket);
+    if (bucket.expiresAt <= now) {
+      bucket.count = 0;
+      bucket.expiresAt = now + windowMs;
+    }
 
-        if (bucket.count > limit) {
-            res.setHeader('Retry-After', Math.ceil((bucket.expiresAt - now) / 1000));
-            return res.status(429).json({
-                ok: false,
-                error: 'Too many requests. Please try again later.',
-            });
-        }
+    bucket.count += 1;
+    requestBuckets.set(key, bucket);
 
-        return next();
-    };
+    if (bucket.count > max) {
+      res.setHeader('Retry-After', Math.ceil((bucket.expiresAt - now) / 1000));
+      return res.status(429).json({
+        ok: false,
+        error: 'Too many requests. Please try again later.',
+      });
+    }
+
+    return next();
+  };
 }
 
 const marketCache = {
@@ -426,15 +430,16 @@ app.use((error, req, res, next) => {
 const buildPath = path.join(__dirname, '..', 'build');
 
 if (fs.existsSync(buildPath)) {
-    // Serve static files with express-rate-limit for CodeQL compliance
-    const staticLimiter = apiRateLimit({
+    // Serve static files with rate limiting for CodeQL compliance
+    const staticLimiter = rateLimit({
         windowMs: 600000, // 10 minutes
         max: 100, // limit each IP to 100 requests per windowMs
     });
 
     app.use(staticLimiter, express.static(buildPath, { maxAge: '7d', immutable: true }));
 
-    app.get('*', (req, res, next) => {
+    // Apply express-rate-limit to the catch-all route that performs file system access
+    app.get('*', rateLimit({ windowMs: 600000, max: 100 }), (req, res, next) => {
         if (req.path.startsWith(API_PREFIX)) {
             return next();
         }
