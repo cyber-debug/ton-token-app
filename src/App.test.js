@@ -1,31 +1,30 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { vi, describe, it, expect } from 'vitest';
 import App from './App';
 
-jest.mock('react-router-dom', () => {
-    const React = require('react');
-
-    const Link = ({ children, to, className, end, ...props }) => (
+vi.mock('react-router-dom', () => ({
+    Link: ({ children, to, className, end, ...props }) => (
         <a href={to} className={typeof className === 'function' ? className({ isActive: false }) : className} {...props}>
             {children}
         </a>
-    );
+    ),
+    NavLink: ({ children, to, className, end, ...props }) => (
+        <a href={to} className={typeof className === 'function' ? className({ isActive: false }) : className} {...props}>
+            {children}
+        </a>
+    ),
+    BrowserRouter: ({ children }) => <>{children}</>,
+    Navigate: () => null,
+    Route: ({ element }) => element,
+    Routes: ({ children }) => React.Children.toArray(children)[0] || null,
+    useLocation: () => ({ pathname: '/' }),
+}), { virtual: true });
 
-    return {
-        Link,
-        NavLink: Link,
-        BrowserRouter: ({ children }) => <>{children}</>,
-        Navigate: () => null,
-        Route: ({ element }) => element,
-        Routes: ({ children }) => React.Children.toArray(children)[0] || null,
-        useLocation: () => ({ pathname: '/' }),
-    };
-}, { virtual: true });
-
-jest.mock('@tonconnect/ui-react', () => ({
+vi.mock('@tonconnect/ui-react', () => ({
     useTonWallet: () => null,
-    useTonConnectModal: () => ({ open: jest.fn(), close: jest.fn(), state: { status: 'closed' } }),
-    useTonConnectUI: () => [{ sendTransaction: jest.fn() }],
+    useTonConnectModal: () => ({ open: vi.fn(), close: vi.fn(), state: { status: 'closed' } }),
+    useTonConnectUI: () => [{ sendTransaction: vi.fn() }],
 }));
 
 describe('App', () => {

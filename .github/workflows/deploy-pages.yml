@@ -31,10 +31,10 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          REACT_APP_ROUTER_MODE: hash
-          REACT_APP_TON_NETWORK: testnet
-          REACT_APP_DEMO_MODE: true
-          REACT_APP_TONCONNECT_MANIFEST_URL: https://cyber-debug.github.io/ton-token-app/tonconnect-manifest.json
+          VITE_ROUTER_MODE: hash
+          VITE_TON_NETWORK: testnet
+          VITE_DEMO_MODE: true
+          VITE_TONCONNECT_MANIFEST_URL: https://cyber-debug.github.io/ton-token-app/tonconnect-manifest.json
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

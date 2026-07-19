@@ -61,11 +61,11 @@ The application defaults to TON testnet and live API mode. Use the following env
 - `TON_NETWORK` - backend TON network, `testnet` or `mainnet`, default `testnet`
 - `TONCENTER_API_BASE_URL` - optional TON Center API override
 - `COINGECKO_API_BASE_URL` - optional CoinGecko API override
-- `REACT_APP_API_BASE_URL` - optional backend URL override for the frontend
-- `REACT_APP_TON_NETWORK` - frontend TON network, `testnet` or `mainnet`, default `testnet`
-- `REACT_APP_DEMO_MODE` - enables clearly labeled local demo data; default `false`
-- `REACT_APP_ROUTER_MODE` - `auto`, `browser`, or `hash`
-- `REACT_APP_TONCONNECT_MANIFEST_URL` - optional manifest override
+- `VITE_API_BASE_URL` - optional backend URL override for the frontend
+- `VITE_TON_NETWORK` - frontend TON network, `testnet` or `mainnet`, default `testnet`
+- `VITE_DEMO_MODE` - enables clearly labeled local demo data; default `false`
+- `VITE_ROUTER_MODE` - `auto`, `browser`, or `hash`
+- `VITE_TONCONNECT_MANIFEST_URL` - optional manifest override
 - `APP_PUBLIC_URL` - optional absolute public URL used by the backend manifest route
 - `CORS_ORIGIN` - optional comma-separated list of allowed origins
 - `TONCENTER_API_KEY` - optional TON Center API key for balance lookups
@@ -73,7 +73,7 @@ The application defaults to TON testnet and live API mode. Use the following env
 Example:
 
 ```bash
-REACT_APP_API_BASE_URL=http://127.0.0.1:3001 npm start
+VITE_API_BASE_URL=http://127.0.0.1:3001 npm start
 ```
 
 Demo mode is intentionally separate from live mode. It may provide simulated balances, market data, and quote previews, but wallet transfers remain disabled. API failures in live mode are surfaced as errors instead of silently switching to demo data.
@@ -114,7 +114,7 @@ npm run build
 npm run server
 ```
 
-If you deploy the frontend and backend separately, point `REACT_APP_API_BASE_URL` at the backend origin.
+If you deploy the frontend and backend separately, point `VITE_API_BASE_URL` at the backend origin.
 
 ## GitHub Pages
 

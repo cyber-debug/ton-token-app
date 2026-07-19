@@ -4,7 +4,7 @@ const NETWORKS = Object.freeze({
 });
 
 function readString(name, fallback = '') {
-    const value = process.env[name];
+    const value = import.meta.env[name];
     return value === undefined ? fallback : String(value).trim();
 }
 
@@ -68,14 +68,14 @@ function isStaticHostingHost() {
     );
 }
 
-const networkName = readEnum('REACT_APP_TON_NETWORK', Object.keys(NETWORKS), 'testnet');
+const networkName = readEnum('VITE_TON_NETWORK', Object.keys(NETWORKS), 'testnet');
 const network = NETWORKS[networkName];
 
 export const APP_CONFIG = Object.freeze({
-    apiBaseUrl: readUrlOrPath('REACT_APP_API_BASE_URL', '', { optional: true }),
-    demoMode: readBoolean('REACT_APP_DEMO_MODE', false),
-    routerMode: readEnum('REACT_APP_ROUTER_MODE', ['auto', 'browser', 'hash'], 'auto'),
-    tonConnectManifestUrl: readUrlOrPath('REACT_APP_TONCONNECT_MANIFEST_URL', '', { optional: true }),
+    apiBaseUrl: readUrlOrPath('VITE_API_BASE_URL', '', { optional: true }),
+    demoMode: readBoolean('VITE_DEMO_MODE', false),
+    routerMode: readEnum('VITE_ROUTER_MODE', ['auto', 'browser', 'hash'], 'auto'),
+    tonConnectManifestUrl: readUrlOrPath('VITE_TONCONNECT_MANIFEST_URL', '', { optional: true }),
     tonNetwork: networkName,
     tonNetworkLabel: network.label,
     tonChainId: network.chainId,
