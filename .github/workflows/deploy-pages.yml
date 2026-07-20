@@ -32,13 +32,6 @@ jobs:
     needs: configuration
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      APP_PUBLIC_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
-      VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-      VITE_TON_NETWORK: ${{ vars.VITE_TON_NETWORK || 'testnet' }}
-      VITE_DEMO_MODE: ${{ vars.VITE_API_BASE_URL == '' && 'true' || 'false' }}
-      VITE_ROUTER_MODE: hash
-      VITE_TONCONNECT_MANIFEST_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/tonconnect-manifest.json
 
     steps:
       - name: Checkout
@@ -57,9 +50,17 @@ jobs:
         run: npm run lint && npm test
 
       - name: Generate deployment manifest
+        env:
+          APP_PUBLIC_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
         run: npm run manifest:generate
 
       - name: Build beta
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_TON_NETWORK: ${{ vars.VITE_TON_NETWORK || 'testnet' }}
+          VITE_DEMO_MODE: ${{ vars.VITE_API_BASE_URL == '' && 'true' || 'false' }}
+          VITE_ROUTER_MODE: hash
+          VITE_TONCONNECT_MANIFEST_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/tonconnect-manifest.json
         run: npm run build
 
       - name: Configure GitHub Pages
