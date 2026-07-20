@@ -1,4 +1,4 @@
-name: Deploy live beta to GitHub Pages
+name: Deploy beta to GitHub Pages
 
 on:
   push:
@@ -14,35 +14,29 @@ concurrency:
 
 jobs:
   configuration:
-    name: Check live beta configuration
+    name: Check beta configuration
     runs-on: ubuntu-latest
-    outputs:
-      enabled: ${{ steps.check.outputs.enabled }}
     steps:
       - name: Check backend URL
-        id: check
         env:
           BETA_API_URL: ${{ vars.VITE_API_BASE_URL }}
         run: |
           if [ -z "$BETA_API_URL" ]; then
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Pages deployment skipped. Set the VITE_API_BASE_URL repository variable to the public HTTPS backend URL."
+            echo "::notice::No VITE_API_BASE_URL is configured. Publishing the labeled demo with transfers disabled."
             exit 0
           fi
           node -e "const value = new URL(process.env.BETA_API_URL); if (value.protocol !== 'https:') throw new Error('VITE_API_BASE_URL must use HTTPS');"
-          echo "enabled=true" >> "$GITHUB_OUTPUT"
 
   build:
-    name: Build live frontend
+    name: Build beta frontend
     needs: configuration
-    if: needs.configuration.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       APP_PUBLIC_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
       VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
       VITE_TON_NETWORK: ${{ vars.VITE_TON_NETWORK || 'testnet' }}
-      VITE_DEMO_MODE: false
+      VITE_DEMO_MODE: ${{ vars.VITE_API_BASE_URL == '' && 'true' || 'false' }}
       VITE_ROUTER_MODE: hash
       VITE_TONCONNECT_MANIFEST_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/tonconnect-manifest.json
 
@@ -65,7 +59,7 @@ jobs:
       - name: Generate deployment manifest
         run: npm run manifest:generate
 
-      - name: Build live beta
+      - name: Build beta
         run: npm run build
 
       - name: Configure GitHub Pages
@@ -77,7 +71,7 @@ jobs:
           path: build
 
   deploy:
-    name: Deploy live frontend
+    name: Deploy beta frontend
     needs: build
     if: needs.build.result == 'success'
     runs-on: ubuntu-latest

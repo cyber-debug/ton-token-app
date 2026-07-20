@@ -254,9 +254,9 @@ handles `SIGTERM` and `SIGINT` with graceful HTTP shutdown.
 
 - **CI** performs locked installation, zero-warning lint, all frontend/backend
   tests, the production build, and a production dependency audit.
-- **GitHub Pages** deploys a live frontend only when the repository variable
-  `VITE_API_BASE_URL` contains a public HTTPS backend URL. Missing configuration
-  safely skips deployment with an Actions notice.
+- **GitHub Pages** publishes a labeled demo with transfers disabled until the
+  repository variable `VITE_API_BASE_URL` contains a public HTTPS backend URL;
+  the same workflow then builds the live frontend automatically.
 - **Dependabot** checks npm and GitHub Actions dependencies every week.
 
 GitHub Pages hosts only static frontend assets. Configure the external API with:
