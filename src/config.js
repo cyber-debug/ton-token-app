@@ -74,12 +74,15 @@ const network = NETWORKS[networkName];
 export const APP_CONFIG = Object.freeze({
     apiBaseUrl: readUrlOrPath('VITE_API_BASE_URL', '', { optional: true }),
     demoMode: readBoolean('VITE_DEMO_MODE', false),
+    release: 'beta',
     routerMode: readEnum('VITE_ROUTER_MODE', ['auto', 'browser', 'hash'], 'auto'),
     tonConnectManifestUrl: readUrlOrPath('VITE_TONCONNECT_MANIFEST_URL', '', { optional: true }),
     tonNetwork: networkName,
     tonNetworkLabel: network.label,
     tonChainId: network.chainId,
 });
+
+export const IS_DEVELOPMENT = import.meta.env.DEV;
 
 export function getTonConnectManifestUrl() {
     if (APP_CONFIG.tonConnectManifestUrl) {

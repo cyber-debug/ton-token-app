@@ -16,6 +16,7 @@ function BuySellForm() {
 
     useEffect(() => {
         let cancelled = false;
+        const controller = new AbortController();
         const timer = window.setTimeout(async () => {
             const amountValue = Number(amount);
             if (!Number.isFinite(amountValue) || amountValue <= 0) {
@@ -35,6 +36,7 @@ function BuySellForm() {
                         side,
                         amount: amountValue,
                     },
+                    signal: controller.signal,
                     fallback: () => ({
                         quote: buildOfflineQuote({ side, amountTon: amountValue, market: buildOfflineMarket() }),
                         market: buildOfflineMarket(),
@@ -67,6 +69,7 @@ function BuySellForm() {
 
         return () => {
             cancelled = true;
+            controller.abort();
             window.clearTimeout(timer);
         };
     }, [amount, side]);
@@ -75,6 +78,11 @@ function BuySellForm() {
         try {
             setIsLoading(true);
             const amountValue = Number(amount);
+            if (!Number.isFinite(amountValue) || amountValue <= 0) {
+                setQuote(null);
+                setStatus({ type: 'idle', message: 'Enter a positive amount before refreshing.' });
+                return;
+            }
             const data = await apiRequest('/api/quotes/preview', {
                 params: {
                     side,
@@ -107,9 +115,9 @@ function BuySellForm() {
         <div className="trade-form">
             <div className="section-header">
                 <div>
-                    <div className="section-kicker">Trade preview</div>
+                <div className="section-kicker">Market estimate</div>
                     <h2 className="section-title">
-                        {APP_CONFIG.demoMode ? 'Local quote simulation' : 'Server-priced buy and sell quotes'}
+                        {APP_CONFIG.demoMode ? 'Local quote simulation' : 'Non-executable buy and sell estimates'}
                     </h2>
                 </div>
                 <span className="pill">
@@ -151,7 +159,7 @@ function BuySellForm() {
                     <div className="metric-value metric-value-sm">{amountValue ? `${amountValue.toFixed(2)} TON` : '0 TON'}</div>
                 </div>
                 <div className="metric-card">
-                    <div className="metric-label">Expected output</div>
+                    <div className="metric-label">{side === 'buy' ? 'Estimated cost' : 'Estimated proceeds'}</div>
                     <div className="metric-value metric-value-sm">{quote ? `${quote.totalUsd.toFixed(2)} USD` : '—'}</div>
                 </div>
                 <div className="metric-card">
@@ -178,7 +186,7 @@ function BuySellForm() {
             ) : null}
 
             <div className="form-actions">
-                <button type="button" className="primary-button" onClick={refreshQuote}>
+                <button type="button" className="primary-button" onClick={refreshQuote} disabled={isLoading}>
                     <FaSyncAlt /> {isLoading ? 'Updating...' : 'Refresh quote'}
                 </button>
                 <button type="button" className="secondary-button" onClick={() => setAmount('10')}>
@@ -186,9 +194,13 @@ function BuySellForm() {
                 </button>
             </div>
 
-            <p className={`small ${status.type === 'error' ? 'text-danger' : status.type === 'success' ? 'text-success' : ''}`}>
+            <p
+                aria-live="polite"
+                className={`small ${status.type === 'error' ? 'text-danger' : status.type === 'success' ? 'text-success' : ''}`}
+            >
                 {status.message}
             </p>
+            <p className="small">Estimates are informational only and do not execute a swap or reserve a price.</p>
         </div>
     );
 }

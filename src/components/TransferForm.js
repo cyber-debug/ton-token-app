@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { toNano } from '@ton/core';
 import { useTonConnectModal, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { FaPaperPlane, FaShieldAlt, FaWallet } from 'react-icons/fa';
 import { apiRequest } from '../lib/api';
+import { addWalletActivity } from '../lib/activity';
 import { APP_CONFIG } from '../config';
+
+function shortAddress(address) {
+    return address ? `${address.slice(0, 6)}…${address.slice(-4)}` : 'unknown recipient';
+}
 
 function TransferForm() {
     const wallet = useTonWallet();
@@ -19,6 +23,9 @@ function TransferForm() {
             : 'The backend validates transfer details before the wallet signs them.',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const walletAddress = wallet?.account?.address || '';
+    const walletChainId = wallet?.account?.chain || '';
+    const networkMatches = !wallet || walletChainId === APP_CONFIG.tonChainId;
 
     const openWalletModal = async () => {
         try {
@@ -47,28 +54,52 @@ function TransferForm() {
             return;
         }
 
+        if (!networkMatches) {
+            setStatus({
+                type: 'error',
+                message: `This beta is configured for ${APP_CONFIG.tonNetworkLabel}. Switch wallet networks before sending.`,
+            });
+            return;
+        }
+
         setIsSubmitting(true);
         setStatus({ type: 'idle', message: 'Preparing transfer on the backend...' });
 
         try {
-            const amountValue = Number(amount);
             const data = await apiRequest('/api/transfer/prepare', {
                 method: 'POST',
                 body: {
                     recipient,
-                    amount: amountValue,
+                    amount,
                     memo,
+                    senderAddress: walletAddress,
+                    walletChainId,
                 },
             });
 
+            const draft = data.transferDraft;
+            if (draft.network !== APP_CONFIG.tonChainId) {
+                throw new Error('The backend prepared this transfer for a different TON network.');
+            }
+
             await tonConnectUI.sendTransaction({
-                validUntil: Math.floor(Date.now() / 1000) + 300,
+                validUntil: draft.validUntil,
+                network: draft.network,
+                from: walletAddress,
                 messages: [
                     {
-                        address: data.transferDraft.recipient,
-                        amount: data.transferDraft.amountNano || toNano(amountValue).toString(),
+                        address: draft.recipient,
+                        amount: draft.amountNano,
+                        ...(draft.payload ? { payload: draft.payload } : {}),
                     },
                 ],
+            });
+
+            addWalletActivity(walletAddress, {
+                type: 'transfer',
+                title: 'Transfer approved in wallet',
+                meta: `${draft.amountTon} TON to ${shortAddress(draft.recipient)}${draft.memoIncluded ? ' · memo attached' : ''}`,
+                value: APP_CONFIG.tonNetworkLabel,
             });
 
             setStatus({
@@ -109,7 +140,13 @@ function TransferForm() {
 
             <div className="wallet-banner">
                 <FaWallet />
-                <span>{wallet ? 'Wallet connected and ready to sign.' : 'Connect a wallet to continue.'}</span>
+                <span>
+                    {!wallet
+                        ? 'Connect a wallet to continue.'
+                        : networkMatches
+                            ? `Wallet connected on ${APP_CONFIG.tonNetworkLabel} and ready to sign.`
+                            : `Wrong wallet network. Switch to ${APP_CONFIG.tonNetworkLabel}.`}
+                </span>
             </div>
 
             <label className="field">
@@ -121,6 +158,7 @@ function TransferForm() {
                     onChange={(event) => setRecipient(event.target.value)}
                     placeholder="EQ..."
                     autoComplete="off"
+                    required
                 />
             </label>
 
@@ -132,8 +170,9 @@ function TransferForm() {
                     value={amount}
                     onChange={(event) => setAmount(event.target.value)}
                     placeholder="1"
-                    min="0"
-                    step="0.1"
+                    min="0.000000001"
+                    step="0.000000001"
+                    required
                 />
             </label>
 
@@ -145,12 +184,16 @@ function TransferForm() {
                     value={memo}
                     onChange={(event) => setMemo(event.target.value)}
                     placeholder="Optional transfer note"
-                    maxLength={96}
+                    maxLength={120}
                 />
             </label>
 
             <div className="form-actions">
-                <button type="submit" className="primary-button" disabled={isSubmitting || APP_CONFIG.demoMode}>
+                <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={isSubmitting || APP_CONFIG.demoMode || !networkMatches}
+                >
                     <FaPaperPlane />{' '}
                     {APP_CONFIG.demoMode ? 'Disabled in demo mode' : isSubmitting ? 'Submitting...' : wallet ? 'Transfer funds' : 'Connect wallet'}
                 </button>
@@ -159,7 +202,10 @@ function TransferForm() {
                 </button>
             </div>
 
-            <p className={`small ${status.type === 'error' ? 'text-danger' : status.type === 'success' ? 'text-success' : ''}`}>
+            <p
+                aria-live="polite"
+                className={`small ${status.type === 'error' ? 'text-danger' : status.type === 'success' ? 'text-success' : ''}`}
+            >
                 {status.message}
             </p>
         </form>

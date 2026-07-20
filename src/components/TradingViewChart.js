@@ -16,37 +16,25 @@ import { APP_CONFIG } from '../config';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
-function buildFallbackSeries(priceUsd) {
-    const base = Number(priceUsd || 0);
-    const now = Date.now();
-
-    return Array.from({ length: 24 }, (_, index) => {
-        const deviation = Math.sin(index / 2.8) * base * 0.02 + Math.cos(index / 5) * base * 0.01;
-        return {
-            timestamp: new Date(now - (23 - index) * 60 * 60 * 1000).toISOString(),
-            priceUsd: Number((base + deviation).toFixed(4)),
-        };
-    });
-}
-
 function TradingViewChart() {
     const [market, setMarket] = useState(null);
     const [series, setSeries] = useState([]);
     const [status, setStatus] = useState('Loading market data...');
 
     useEffect(() => {
-        if (process.env.NODE_ENV === 'test') {
-            return undefined;
-        }
-
         let mounted = true;
+        const controller = new AbortController();
 
         async function loadChart() {
             try {
                 const [marketResponse, historyResponse] = await Promise.all([
-                    apiRequest('/api/market/ton', { fallback: () => ({ market: buildOfflineMarket() }) }),
+                    apiRequest('/api/market/ton', {
+                        signal: controller.signal,
+                        fallback: () => ({ market: buildOfflineMarket() }),
+                    }),
                     apiRequest('/api/market/ton/history', {
                         params: { days: 1 },
+                        signal: controller.signal,
                         fallback: () => ({ series: buildOfflineHistory(buildOfflineMarket()) }),
                     }),
                 ]);
@@ -57,7 +45,13 @@ function TradingViewChart() {
 
                 setMarket(marketResponse.market);
                 setSeries(Array.isArray(historyResponse.series) && historyResponse.series.length ? historyResponse.series : []);
-                setStatus(APP_CONFIG.demoMode ? 'Demo market series shown.' : 'Live market feed connected.');
+                setStatus(
+                    APP_CONFIG.demoMode
+                        ? 'Demo market series shown.'
+                        : historyResponse.isStale || marketResponse.market?.isStale
+                            ? 'Showing recently cached market data.'
+                            : 'Live market feed connected.'
+                );
             } catch (error) {
                 if (!mounted) {
                     return;
@@ -73,11 +67,12 @@ function TradingViewChart() {
 
         return () => {
             mounted = false;
+            controller.abort();
         };
     }, []);
 
     const chartSeries = useMemo(() => {
-        const dataPoints = series.length ? series : buildFallbackSeries(market?.priceUsd || 0);
+        const dataPoints = series;
         return {
             labels: dataPoints.map((point) =>
                 new Intl.DateTimeFormat(undefined, {
@@ -99,7 +94,7 @@ function TradingViewChart() {
                 },
             ],
         };
-    }, [market?.priceUsd, series]);
+    }, [series]);
 
     const chartOptions = useMemo(
         () => ({
@@ -169,11 +164,15 @@ function TradingViewChart() {
                             : status}
                     </div>
                 </div>
-                <div className="market-chart">
-                    <Line data={chartSeries} options={chartOptions} />
-                </div>
+                {series.length ? (
+                    <div className="market-chart">
+                        <Line data={chartSeries} options={chartOptions} />
+                    </div>
+                ) : (
+                    <div className="chart-empty small">Market history is unavailable. No synthetic live data is shown.</div>
+                )}
             </div>
-            <p className="small">{status}</p>
+            <p className="small" aria-live="polite">{status}</p>
         </div>
     );
 }

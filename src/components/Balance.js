@@ -7,7 +7,7 @@ const NANO_TON = 1_000_000_000n;
 
 function formatTonAmount(balance) {
     try {
-        const nano = window.BigInt(balance);
+        const nano = BigInt(balance);
         const whole = nano / NANO_TON;
         const fraction = (nano % NANO_TON)
             .toString()
@@ -34,6 +34,7 @@ function Balance({ address }) {
         }
 
         const controller = new AbortController();
+        let mounted = true;
 
         async function loadBalance() {
             setLoading(true);
@@ -49,19 +50,31 @@ function Balance({ address }) {
                     throw new Error('Balance response was empty.');
                 }
 
-                setBalance(data.balance.balanceNano);
+                if (data.balance.network && data.balance.network !== APP_CONFIG.tonChainId) {
+                    throw new Error('Balance response came from the wrong TON network.');
+                }
+
+                if (mounted) {
+                    setBalance(data.balance.balanceNano);
+                    setError(data.balance.isStale ? 'Showing the most recent cached balance.' : '');
+                }
             } catch (err) {
-                if (err.name !== 'AbortError') {
+                if (mounted && err.name !== 'AbortError') {
                     setError('We could not load the live balance right now.');
                 }
             } finally {
-                setLoading(false);
+                if (mounted) {
+                    setLoading(false);
+                }
             }
         }
 
         loadBalance();
 
-        return () => controller.abort();
+        return () => {
+            mounted = false;
+            controller.abort();
+        };
     }, [address]);
 
     return (

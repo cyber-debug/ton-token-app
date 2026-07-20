@@ -1,13 +1,15 @@
-const NETWORK_DEFAULTS = {
-    testnet: {
+import 'dotenv/config';
+
+const NETWORK_DEFAULTS = Object.freeze({
+    testnet: Object.freeze({
         chainId: '-3',
         toncenterApiBaseUrl: 'https://testnet.toncenter.com/api/v2',
-    },
-    mainnet: {
+    }),
+    mainnet: Object.freeze({
         chainId: '-239',
         toncenterApiBaseUrl: 'https://toncenter.com/api/v2',
-    },
-};
+    }),
+});
 
 function readString(name, fallback = '') {
     const value = process.env[name];
@@ -35,6 +37,16 @@ function readInteger(name, fallback, { min, max }) {
     return value;
 }
 
+function readPositiveDecimal(name, fallback) {
+    const value = readString(name, fallback);
+
+    if (!/^(?:0|[1-9]\d*)(?:\.\d{1,9})?$/.test(value) || Number(value) <= 0) {
+        throw new Error(`${name} must be a positive TON amount with no more than 9 decimal places.`);
+    }
+
+    return value;
+}
+
 function parseHttpUrl(name, rawValue, { optional = false } = {}) {
     if (!rawValue && optional) {
         return '';
@@ -51,7 +63,7 @@ function parseHttpUrl(name, rawValue, { optional = false } = {}) {
         throw new Error(`${name} must use HTTP or HTTPS.`);
     }
 
-    return rawValue.replace(/\/$/, '');
+    return parsed.toString().replace(/\/$/, '');
 }
 
 function readHttpUrl(name, fallback = '', options = {}) {
@@ -64,17 +76,33 @@ function readCorsOrigins() {
         return [];
     }
 
-    return rawValue.split(',').map((origin) => parseHttpUrl('CORS_ORIGIN', origin.trim()));
+    return rawValue
+        .split(',')
+        .map((origin) => parseHttpUrl('CORS_ORIGIN', origin.trim()))
+        .map((origin) => new URL(origin).origin);
 }
 
 const nodeEnv = readEnum('NODE_ENV', ['development', 'test', 'production'], 'development');
 const tonNetwork = readEnum('TON_NETWORK', Object.keys(NETWORK_DEFAULTS), 'testnet');
 const networkDefaults = NETWORK_DEFAULTS[tonNetwork];
+const appPublicUrl = readHttpUrl('APP_PUBLIC_URL', '', { optional: true });
+
+if (nodeEnv === 'production' && !appPublicUrl) {
+    throw new Error('APP_PUBLIC_URL is required when NODE_ENV=production.');
+}
+
+if (nodeEnv === 'production' && appPublicUrl) {
+    const publicUrl = new URL(appPublicUrl);
+    const localHosts = new Set(['localhost', '127.0.0.1', '[::1]']);
+    if (publicUrl.protocol !== 'https:' && !localHosts.has(publicUrl.hostname)) {
+        throw new Error('APP_PUBLIC_URL must use HTTPS in production.');
+    }
+}
 
 const config = Object.freeze({
     nodeEnv,
     isProduction: nodeEnv === 'production',
-    port: readInteger('BACKEND_PORT', 3001, { min: 1, max: 65535 }),
+    port: readInteger('BACKEND_PORT', 4174, { min: 1, max: 65535 }),
     host: readString('BACKEND_HOST', nodeEnv === 'production' ? '0.0.0.0' : '127.0.0.1'),
     trustProxyHops: readInteger('TRUST_PROXY_HOPS', 0, { min: 0, max: 10 }),
     tonNetwork,
@@ -85,8 +113,13 @@ const config = Object.freeze({
     ),
     toncenterApiKey: readString('TONCENTER_API_KEY'),
     coingeckoApiBaseUrl: readHttpUrl('COINGECKO_API_BASE_URL', 'https://api.coingecko.com/api/v3'),
-    appPublicUrl: readHttpUrl('APP_PUBLIC_URL', '', { optional: true }),
+    appPublicUrl,
     corsOrigins: Object.freeze(readCorsOrigins()),
+    upstreamTimeoutMs: readInteger('UPSTREAM_TIMEOUT_MS', 8_000, { min: 1_000, max: 30_000 }),
+    apiRateLimitMax: readInteger('API_RATE_LIMIT_MAX', 240, { min: 20, max: 10_000 }),
+    transferRateLimitMax: readInteger('TRANSFER_RATE_LIMIT_MAX', 30, { min: 1, max: 1_000 }),
+    maxTransferTon: readPositiveDecimal('MAX_TRANSFER_TON', '100'),
 });
 
-module.exports = config;
+export { NETWORK_DEFAULTS };
+export default config;

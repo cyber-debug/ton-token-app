@@ -1,4 +1,5 @@
 import React from 'react';
+import { IS_DEVELOPMENT } from '../config';
 
 class AppErrorBoundary extends React.Component {
     constructor(props) {
@@ -11,7 +12,7 @@ class AppErrorBoundary extends React.Component {
     }
 
     componentDidCatch(error, info) {
-        if (process.env.NODE_ENV !== 'production') {
+        if (IS_DEVELOPMENT) {
             // Keep the console useful during local debugging.
             console.error('App error boundary caught an error:', error, info);
         }

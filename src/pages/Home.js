@@ -1,12 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaArrowRight, FaBolt, FaExchangeAlt, FaPaperPlane, FaWallet } from 'react-icons/fa';
 import { useTonConnectModal, useTonWallet } from '@tonconnect/ui-react';
 import Balance from '../components/Balance';
-import { apiRequest } from '../lib/api';
-import { buildOfflineDashboard } from '../lib/offline';
-import { APP_CONFIG } from '../config';
+import { APP_CONFIG, IS_DEVELOPMENT } from '../config';
+import { useDashboard } from '../hooks/useDashboard';
+import { useWalletActivity } from '../hooks/useWalletActivity';
 import './Home.css';
 
 const fadeUp = {
@@ -18,59 +18,29 @@ const fadeUp = {
     }),
 };
 
+function readTelegramUser() {
+    const userData = typeof window !== 'undefined'
+        ? window.Telegram?.WebApp?.initDataUnsafe?.user
+        : null;
+
+    return userData
+        ? {
+            id: userData.id,
+            firstName: userData.first_name,
+            lastName: userData.last_name,
+            username: userData.username,
+            photoUrl: userData.photo_url,
+        }
+        : null;
+}
+
 function Home() {
     const wallet = useTonWallet();
     const { open } = useTonConnectModal();
-    const [telegramUser, setTelegramUser] = useState(null);
-    const [dashboard, setDashboard] = useState({
-        market: null,
-        activity: [],
-        health: null,
-    });
-
-    useEffect(() => {
-        const userData = window.Telegram?.WebApp?.initDataUnsafe?.user;
-
-        if (userData) {
-            setTelegramUser({
-                id: userData.id,
-                firstName: userData.first_name,
-                lastName: userData.last_name,
-                username: userData.username,
-                photoUrl: userData.photo_url,
-            });
-        }
-    }, []);
-
-    useEffect(() => {
-        if (process.env.NODE_ENV === 'test') {
-            return undefined;
-        }
-
-        let mounted = true;
-
-        apiRequest('/api/dashboard')
-            .then((payload) => {
-                if (mounted) {
-                    setDashboard({
-                        market: payload.market,
-                        activity: payload.activity || [],
-                        health: payload.health,
-                    });
-                }
-            })
-            .catch(() => {
-                if (mounted) {
-                    setDashboard(APP_CONFIG.demoMode ? buildOfflineDashboard() : { market: null, activity: [], health: null });
-                }
-            });
-
-        return () => {
-            mounted = false;
-        };
-    }, []);
-
+    const [telegramUser] = useState(readTelegramUser);
     const walletAddress = wallet?.account?.address || '';
+    const { dashboard, loading: dashboardLoading, error: dashboardError } = useDashboard();
+    const walletActivity = useWalletActivity(walletAddress);
 
     const shortAddress = useMemo(() => {
         if (!walletAddress) {
@@ -85,7 +55,7 @@ function Home() {
             await open();
         } catch (error) {
             const message = String(error?.message || error || '');
-            if (process.env.NODE_ENV !== 'production' && !message.toLowerCase().includes('abort')) {
+            if (IS_DEVELOPMENT && !message.toLowerCase().includes('abort')) {
                 console.error('Failed to open TonConnect modal:', error);
             }
         }
@@ -115,15 +85,24 @@ function Home() {
     const snapshot = [
         { label: 'Wallet status', value: wallet ? 'Connected' : 'Disconnected' },
         { label: 'TON price', value: dashboard.market ? `$${dashboard.market.priceUsd.toFixed(2)}` : 'Loading...' },
-        { label: 'API status', value: APP_CONFIG.demoMode ? 'Demo' : dashboard.health ? 'Online' : 'Offline' },
+        {
+            label: 'API status',
+            value: APP_CONFIG.demoMode
+                ? 'Demo'
+                : dashboard.health?.chainId && dashboard.health.chainId !== APP_CONFIG.tonChainId
+                    ? 'Network mismatch'
+                    : dashboard.health
+                        ? 'Online'
+                        : dashboardLoading
+                            ? 'Connecting…'
+                            : 'Offline',
+        },
     ];
 
-    const activity = dashboard.activity.length
-        ? dashboard.activity
+    const activity = walletActivity.length
+        ? walletActivity
         : [
-              { title: 'Balance sync', meta: 'Live query', value: wallet ? 'Updated' : 'Waiting' },
-              { title: 'Trade desk', meta: 'Market view', value: 'Ready' },
-              { title: 'Transfer flow', meta: 'Wallet signing', value: 'Protected' },
+              { title: 'No private activity yet', meta: 'Stored only in this browser', value: wallet ? 'Ready' : 'Connect wallet' },
           ];
 
     return (
@@ -134,7 +113,7 @@ function Home() {
                     <h1 className="page-title">VORIX Wallet</h1>
                     <p className="page-subtitle">
                         {telegramUser
-                            ? `Welcome back, ${telegramUser.firstName}. Your Telegram profile is linked and ready.`
+                            ? `Welcome back, ${telegramUser.firstName}. Your Telegram profile was detected for this session.`
                             : 'Track TON balance, review market context, and move funds from a polished wallet cockpit.'}
                     </p>
 
@@ -163,6 +142,7 @@ function Home() {
                                 src={telegramUser.photoUrl}
                                 alt={`${telegramUser.firstName} avatar`}
                                 className="avatar avatar-large"
+                                referrerPolicy="no-referrer"
                             />
                         ) : (
                             <div className="avatar avatar-large avatar-placeholder">
@@ -264,8 +244,14 @@ function Home() {
                             </div>
                             <div className="info-row">
                                 <span>Transfer safety</span>
-                                <strong>Backend-validated</strong>
+                                <strong>Chain enforced</strong>
                             </div>
+                            {dashboardError ? (
+                                <div className="info-row">
+                                    <span>API detail</span>
+                                    <strong className="text-danger">{dashboardError}</strong>
+                                </div>
+                            ) : null}
                         </div>
                     </motion.section>
 
@@ -273,7 +259,7 @@ function Home() {
                         <div className="section-header">
                             <div>
                                 <div className="section-kicker">Recent activity</div>
-                                <h2 className="section-title">What is ready now</h2>
+                                <h2 className="section-title">Private activity on this device</h2>
                             </div>
                         </div>
                         <div className="activity-list">

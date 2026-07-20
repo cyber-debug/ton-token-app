@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTonConnectModal, useTonWallet } from '@tonconnect/ui-react';
-import { apiRequest } from '../lib/api';
-import { buildOfflineDashboard } from '../lib/offline';
-import { APP_CONFIG } from '../config';
+import { APP_CONFIG, IS_DEVELOPMENT } from '../config';
+import { useDashboard } from '../hooks/useDashboard';
+import { useWalletActivity } from '../hooks/useWalletActivity';
 import './Profile.css';
 
 function Profile() {
@@ -11,39 +11,8 @@ function Profile() {
     const wallet = useTonWallet();
     const { open } = useTonConnectModal();
     const connectedAddress = wallet?.account?.address || '';
-    const [dashboard, setDashboard] = useState({ activity: [], health: null });
-
-    useEffect(() => {
-        if (process.env.NODE_ENV === 'test') {
-            return undefined;
-        }
-
-        let mounted = true;
-
-        apiRequest('/api/dashboard')
-            .then((payload) => {
-                if (mounted) {
-                    setDashboard({
-                        activity: payload.activity || [],
-                        health: payload.health || null,
-                    });
-                }
-            })
-            .catch(() => {
-                if (mounted) {
-                    if (APP_CONFIG.demoMode) {
-                        const fallback = buildOfflineDashboard();
-                        setDashboard({ activity: fallback.activity, health: fallback.health });
-                    } else {
-                        setDashboard({ activity: [], health: null });
-                    }
-                }
-            });
-
-        return () => {
-            mounted = false;
-        };
-    }, []);
+    const { dashboard, error: dashboardError } = useDashboard();
+    const walletActivity = useWalletActivity(connectedAddress);
 
     const walletSummary = useMemo(() => {
         if (!connectedAddress) {
@@ -58,19 +27,19 @@ function Profile() {
             await open();
         } catch (error) {
             const message = String(error?.message || error || '');
-            if (process.env.NODE_ENV !== 'production' && !message.toLowerCase().includes('abort')) {
+            if (IS_DEVELOPMENT && !message.toLowerCase().includes('abort')) {
                 console.error('Failed to open TonConnect modal:', error);
             }
         }
     };
 
-    const activity = dashboard.activity.length
-        ? dashboard.activity.map((entry) => ({
+    const activity = walletActivity.length
+        ? walletActivity.map((entry) => ({
               label: entry.title,
               value: entry.value,
               meta: entry.meta,
           }))
-        : [{ label: 'No activity yet', value: '—', meta: APP_CONFIG.demoMode ? 'Demo mode' : 'Waiting for backend data' }];
+        : [{ label: 'No private activity yet', value: '—', meta: connectedAddress ? 'Stored only in this browser' : 'Connect a wallet' }];
 
     return (
         <div className="stack profile-shell">
@@ -83,7 +52,7 @@ function Profile() {
                     </p>
                 </div>
                 <button type="button" className="primary-button" onClick={openWalletModal}>
-                    Connect wallet
+                    {wallet ? 'Switch wallet' : 'Connect wallet'}
                 </button>
             </header>
 
@@ -115,7 +84,15 @@ function Profile() {
                     </div>
                     <div className="info-row">
                         <span>API health</span>
-                        <strong>{APP_CONFIG.demoMode ? 'Demo' : dashboard.health ? 'Online' : 'Offline'}</strong>
+                        <strong>
+                            {APP_CONFIG.demoMode
+                                ? 'Demo'
+                                : dashboard.health?.chainId && dashboard.health.chainId !== APP_CONFIG.tonChainId
+                                    ? 'Network mismatch'
+                                    : dashboard.health
+                                        ? 'Online'
+                                        : dashboardError || 'Offline'}
+                        </strong>
                     </div>
                 </div>
             </section>
@@ -162,7 +139,7 @@ function Profile() {
                             </div>
                             <div className="info-row">
                                 <span>Protection</span>
-                                <strong>{APP_CONFIG.demoMode ? 'Transfers disabled' : 'Backend-validated actions'}</strong>
+                                <strong>{APP_CONFIG.demoMode ? 'Transfers disabled' : 'Backend validated + chain locked'}</strong>
                             </div>
                         </div>
                     </div>
@@ -171,7 +148,7 @@ function Profile() {
                         <div className="section-header">
                             <div>
                                 <div className="section-kicker">Activity</div>
-                                <h2 className="section-title">Recent account events</h2>
+                                <h2 className="section-title">Activity kept on this device</h2>
                             </div>
                         </div>
                         <div className="activity-list">

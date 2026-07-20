@@ -4,12 +4,12 @@ import { vi, describe, it, expect } from 'vitest';
 import App from './App';
 
 vi.mock('react-router-dom', () => ({
-    Link: ({ children, to, className, end, ...props }) => (
+    Link: ({ children, to, className, end: _end, ...props }) => (
         <a href={to} className={typeof className === 'function' ? className({ isActive: false }) : className} {...props}>
             {children}
         </a>
     ),
-    NavLink: ({ children, to, className, end, ...props }) => (
+    NavLink: ({ children, to, className, end: _end, ...props }) => (
         <a href={to} className={typeof className === 'function' ? className({ isActive: false }) : className} {...props}>
             {children}
         </a>
@@ -27,12 +27,36 @@ vi.mock('@tonconnect/ui-react', () => ({
     useTonConnectUI: () => [{ sendTransaction: vi.fn() }],
 }));
 
+vi.mock('./hooks/useDashboard', () => ({
+    useDashboard: () => ({
+        dashboard: { market: null, activity: [], health: null },
+        loading: false,
+        error: '',
+    }),
+}));
+
+vi.mock('./hooks/useWalletActivity', () => ({
+    useWalletActivity: () => [],
+}));
+
+vi.mock('./pages/Home', () => ({
+    default: () => <h1>VORIX Wallet</h1>,
+}));
+
+vi.mock('./pages/Trade', () => ({
+    default: () => <h1>Market and send</h1>,
+}));
+
+vi.mock('./pages/Profile', () => ({
+    default: () => <h1>Profile and activity</h1>,
+}));
+
 describe('App', () => {
-    it('renders the wallet dashboard shell', () => {
+    it('renders the wallet dashboard shell', async () => {
         render(<App />);
 
-        expect(screen.getByText(/VORIX Wallet/i)).toBeInTheDocument();
-        expect(screen.getAllByRole('link', { name: /trade/i }).length).toBeGreaterThan(0);
-        expect(screen.getAllByRole('link', { name: /profile/i }).length).toBeGreaterThan(0);
+        expect(await screen.findByText(/VORIX Wallet/i)).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /market and send/i })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /profile and activity/i })).toBeInTheDocument();
     });
 });

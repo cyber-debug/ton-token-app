@@ -1,14 +1,10 @@
 {
   "homepage": ".",
   "name": "ton-token-app",
-  "version": "0.1.0",
+  "version": "0.2.0-beta.1",
   "private": true,
   "type": "module",
   "dependencies": {
-    "@testing-library/dom": "^10.4.0",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.2.0",
-    "@testing-library/user-event": "^13.5.0",
     "@ton/core": "^0.60.1",
     "@tonconnect/ui-react": "^2.0.12",
     "buffer": "^6.0.3",
@@ -25,8 +21,7 @@
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^18.2.0",
     "react-icons": "^5.5.0",
-    "react-router-dom": "^7.18.1",
-    "web-vitals": "^2.1.4"
+    "react-router-dom": "^7.18.1"
   },
   "scripts": {
     "start": "concurrently -k \"npm:server\" \"npm:client\"",
@@ -34,14 +29,12 @@
     "server": "node server/index.js",
     "launch": "npm run build && NODE_ENV=production node server/index.js",
     "build": "vite build",
+    "lint": "eslint . --max-warnings=0",
+    "manifest:generate": "node scripts/generate-manifest.mjs",
     "preview": "vite preview",
-    "test": "vitest run"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run lint && npm test && npm run build"
   },
   "browserslist": {
     "production": [
@@ -56,10 +49,24 @@
     ]
   },
   "packageManager": "npm@10.9.8",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^13.5.0",
     "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^9.2.4",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.7.0",
     "jsdom": "^25.0.1",
+    "supertest": "^7.2.2",
     "vite": "^7.3.6",
     "vitest": "^3.2.7"
   }

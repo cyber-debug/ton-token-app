@@ -3,53 +3,20 @@ import { motion } from 'framer-motion';
 import TradingViewChart from '../components/TradingViewChart';
 import BuySellForm from '../components/BuySellForm';
 import TransferForm from '../components/TransferForm';
-import { apiRequest } from '../lib/api';
-import { buildOfflineDashboard } from '../lib/offline';
 import { APP_CONFIG } from '../config';
+import { useDashboard } from '../hooks/useDashboard';
 
 function Trade() {
-    const [dashboard, setDashboard] = React.useState({ market: null, health: null });
-
-    React.useEffect(() => {
-        if (process.env.NODE_ENV === 'test') {
-            return undefined;
-        }
-
-        let mounted = true;
-
-        apiRequest('/api/dashboard')
-            .then((payload) => {
-                if (mounted) {
-                    setDashboard({
-                        market: payload.market || null,
-                        health: payload.health || null,
-                    });
-                }
-            })
-            .catch(() => {
-                if (mounted) {
-                    if (APP_CONFIG.demoMode) {
-                        const fallback = buildOfflineDashboard();
-                        setDashboard({ market: fallback.market, health: fallback.health });
-                    } else {
-                        setDashboard({ market: null, health: null });
-                    }
-                }
-            });
-
-        return () => {
-            mounted = false;
-        };
-    }, []);
+    const { dashboard, loading, error } = useDashboard();
 
     return (
         <div className="stack">
             <header className="page-header">
                 <div>
                     <div className="section-kicker">Market desk</div>
-                    <h1 className="page-title">Trade TON with a cleaner workflow</h1>
+                    <h1 className="page-title">Review TON and send with confidence</h1>
                     <p className="page-subtitle">
-                        Review live charts, preview quotes, and move funds without leaving the TON Connect flow.
+                        Review live market data, calculate informational estimates, and sign real transfers through TON Connect.
                     </p>
                 </div>
                 <span className="pill">{APP_CONFIG.demoMode ? 'Demo preview' : 'Live API mode'}</span>
@@ -59,7 +26,7 @@ function Trade() {
                 <div className="metric-card">
                     <div className="metric-label">Execution model</div>
                     <div className="metric-value metric-value-sm">
-                        {APP_CONFIG.demoMode ? 'Disabled in demo' : 'Wallet signed'}
+                        {APP_CONFIG.demoMode ? 'Disabled in demo' : 'Wallet signed + chain locked'}
                     </div>
                 </div>
                 <div className="metric-card">
@@ -73,13 +40,21 @@ function Trade() {
                 <div className="metric-card">
                     <div className="metric-label">Backend</div>
                     <div className="metric-value metric-value-sm">
-                        {APP_CONFIG.demoMode ? 'Demo' : dashboard.health ? 'Online' : 'Offline'}
+                        {APP_CONFIG.demoMode
+                            ? 'Demo'
+                            : dashboard.health?.chainId && dashboard.health.chainId !== APP_CONFIG.tonChainId
+                                ? 'Wrong network'
+                                : dashboard.health
+                                    ? 'Online'
+                                    : loading
+                                        ? 'Connecting…'
+                                        : 'Offline'}
                     </div>
                 </div>
                 <div className="metric-card">
                     <div className="metric-label">TON price</div>
                     <div className="metric-value metric-value-sm">
-                        {dashboard.market ? `$${dashboard.market.priceUsd.toFixed(2)}` : 'Loading...'}
+                        {dashboard.market ? `$${dashboard.market.priceUsd.toFixed(2)}` : error ? 'Unavailable' : 'Loading...'}
                     </div>
                 </div>
             </section>
@@ -108,11 +83,11 @@ function Trade() {
                         <div className="info-grid">
                             <div className="info-row">
                                 <span>Quotes</span>
-                                <strong>Preview only</strong>
+                                <strong>Estimate only</strong>
                             </div>
                             <div className="info-row">
                                 <span>Transfers</span>
-                                <strong>Sent through wallet</strong>
+                                <strong>Chain-locked wallet signing</strong>
                             </div>
                             <div className="info-row">
                                 <span>Secrets</span>
