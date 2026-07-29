@@ -2,24 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { vi, describe, it, expect } from 'vitest';
 import App from './App';
-
-vi.mock('react-router-dom', () => ({
-    Link: ({ children, to, className, end: _end, ...props }) => (
-        <a href={to} className={typeof className === 'function' ? className({ isActive: false }) : className} {...props}>
-            {children}
-        </a>
-    ),
-    NavLink: ({ children, to, className, end: _end, ...props }) => (
-        <a href={to} className={typeof className === 'function' ? className({ isActive: false }) : className} {...props}>
-            {children}
-        </a>
-    ),
-    BrowserRouter: ({ children }) => <>{children}</>,
-    Navigate: () => null,
-    Route: ({ element }) => element,
-    Routes: ({ children }) => React.Children.toArray(children)[0] || null,
-    useLocation: () => ({ pathname: '/' }),
-}), { virtual: true });
+import { RouterProvider } from './lib/router';
 
 vi.mock('@tonconnect/ui-react', () => ({
     useTonWallet: () => null,
@@ -53,7 +36,13 @@ vi.mock('./pages/Profile', () => ({
 
 describe('App', () => {
     it('renders the wallet dashboard shell', async () => {
-        render(<App />);
+        window.history.replaceState(null, '', '/');
+
+        render(
+            <RouterProvider>
+                <App />
+            </RouterProvider>
+        );
 
         expect(await screen.findByText(/VORIX Wallet/i)).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /market and send/i })).toBeInTheDocument();

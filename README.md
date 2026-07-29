@@ -104,7 +104,7 @@ flowchart LR
 
 ### Requirements
 
-- Node.js 20.19 or newer; Node.js 22 is used in CI
+- Node.js 20.19+, 22.13+, or 24+; Node.js 22 is used in CI
 - npm 10
 - A TON Connect-compatible wallet for interactive transfer testing
 

@@ -1,6 +1,6 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
 import { FaHome, FaExchangeAlt, FaWallet } from 'react-icons/fa';
+import { NavLink } from '../lib/router';
 import './BottomNavigation.css';
 
 function BottomNavigation() {

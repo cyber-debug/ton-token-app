@@ -6,19 +6,28 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
+      react-runtime:
+        patterns:
+          - react
+          - react-dom
+      vite-toolchain:
+        patterns:
+          - vite
+          - "@vitejs/*"
+          - vitest
+          - "@vitest/*"
+      eslint-toolchain:
+        patterns:
+          - eslint
+          - "@eslint/*"
+          - "eslint-plugin-*"
+      testing-library:
+        patterns:
+          - "@testing-library/*"
       npm-minor-and-patch:
         update-types:
           - minor
           - patch
-    ignore:
-      # v6 requires Vite 8; VORIX currently targets the stable Vite 7 toolchain.
-      - dependency-name: "@vitejs/plugin-react"
-        versions:
-          - ">=6 <7"
-      # ESLint 10 is blocked until eslint-plugin-react declares compatibility.
-      - dependency-name: "@eslint/js"
-        versions:
-          - ">=10 <11"
 
   - package-ecosystem: github-actions
     directory: /

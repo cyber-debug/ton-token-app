@@ -18,18 +18,6 @@ export default defineConfig(({ mode }) => {
         // Relative base so the static build works under GitHub Pages subpaths.
         base: './',
         plugins: [react()],
-        // This project (migrated from Create React App) keeps JSX inside .js files,
-        // so tell esbuild to parse them as JSX.
-        esbuild: {
-            loader: 'jsx',
-            include: /src\/.*\.jsx?$/,
-            exclude: [],
-        },
-        optimizeDeps: {
-            esbuildOptions: {
-                loader: { '.js': 'jsx' },
-            },
-        },
         server: {
             host: '127.0.0.1',
             port: frontendPort,
@@ -47,10 +35,34 @@ export default defineConfig(({ mode }) => {
             emptyOutDir: true,
             rollupOptions: {
                 output: {
-                    manualChunks: {
-                        'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-                        'tonconnect-vendor': ['@tonconnect/ui-react', 'buffer'],
-                        'motion-vendor': ['framer-motion'],
+                    manualChunks(id) {
+                        const moduleId = id.replaceAll('\\', '/');
+
+                        if (!moduleId.includes('/node_modules/')) {
+                            return undefined;
+                        }
+
+                        if (
+                            moduleId.includes('/node_modules/react/')
+                            || moduleId.includes('/node_modules/react-dom/')
+                            || moduleId.includes('/node_modules/scheduler/')
+                        ) {
+                            return 'react-vendor';
+                        }
+
+                        if (
+                            moduleId.includes('/node_modules/@ton/')
+                            || moduleId.includes('/node_modules/@tonconnect/')
+                            || moduleId.includes('/node_modules/buffer/')
+                        ) {
+                            return 'tonconnect-vendor';
+                        }
+
+                        if (moduleId.includes('/node_modules/framer-motion/')) {
+                            return 'motion-vendor';
+                        }
+
+                        return undefined;
                     },
                 },
             },

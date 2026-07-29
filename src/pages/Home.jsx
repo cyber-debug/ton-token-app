@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '../lib/router';
 import { motion } from 'framer-motion';
 import { FaArrowRight, FaBolt, FaExchangeAlt, FaPaperPlane, FaWallet } from 'react-icons/fa';
 import { useTonConnectModal, useTonWallet } from '@tonconnect/ui-react';

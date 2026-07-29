@@ -1,14 +1,20 @@
-import React, { lazy, Suspense } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import BottomNavigation from './components/BottomNavigation';
 import AppErrorBoundary from './components/AppErrorBoundary';
 import { APP_CONFIG } from './config';
+import { useRouter } from './lib/router-context';
 import './styles.css';
 
 const Home = lazy(() => import('./pages/Home'));
 const Trade = lazy(() => import('./pages/Trade'));
 const Profile = lazy(() => import('./pages/Profile'));
+
+const routes = Object.freeze({
+    '/': Home,
+    '/trade': Trade,
+    '/profile': Profile,
+});
 
 const pageTransition = {
     initial: { opacity: 0, y: 18 },
@@ -26,7 +32,15 @@ function AnimatedPage({ children }) {
 }
 
 function App() {
-    const location = useLocation();
+    const { navigate, pathname } = useRouter();
+    const activePath = routes[pathname] ? pathname : '/';
+    const Page = routes[activePath];
+
+    useEffect(() => {
+        if (pathname !== activePath) {
+            navigate(activePath, { replace: true });
+        }
+    }, [activePath, navigate, pathname]);
 
     return (
         <AppErrorBoundary>
@@ -37,34 +51,10 @@ function App() {
                     <span>{APP_CONFIG.demoMode ? 'Demo data enabled · transfers disabled' : 'Live beta · verify every wallet prompt'}</span>
                 </div>
                 <AnimatePresence mode="wait">
-                    <Suspense fallback={<main className="page page-loading">Loading VORIX…</main>}>
-                        <Routes location={location} key={location.pathname}>
-                            <Route
-                                path="/"
-                                element={
-                                    <AnimatedPage>
-                                        <Home />
-                                    </AnimatedPage>
-                                }
-                            />
-                            <Route
-                                path="/trade"
-                                element={
-                                    <AnimatedPage>
-                                        <Trade />
-                                    </AnimatedPage>
-                                }
-                            />
-                            <Route
-                                path="/profile"
-                                element={
-                                    <AnimatedPage>
-                                        <Profile />
-                                    </AnimatedPage>
-                                }
-                            />
-                            <Route path="*" element={<Navigate to="/" replace />} />
-                        </Routes>
+                    <Suspense key={activePath} fallback={<main className="page page-loading">Loading VORIX…</main>}>
+                        <AnimatedPage>
+                            <Page />
+                        </AnimatedPage>
                     </Suspense>
                 </AnimatePresence>
                 <BottomNavigation />

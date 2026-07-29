@@ -1,8 +1,8 @@
 import js from '@eslint/js';
 import globals from 'globals';
-import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import jsxUsesVars from './eslint-rules/jsx-uses-vars.js';
 
 export default [
     {
@@ -21,14 +21,17 @@ export default [
             },
         },
         plugins: {
-            react,
+            local: {
+                rules: {
+                    'jsx-uses-vars': jsxUsesVars,
+                },
+            },
             'react-hooks': reactHooks,
             'react-refresh': reactRefresh,
         },
         rules: {
             ...reactHooks.configs.recommended.rules,
-            'react/jsx-uses-react': 'error',
-            'react/jsx-uses-vars': 'error',
+            'local/jsx-uses-vars': 'error',
             'no-unused-vars': ['error', {
                 argsIgnorePattern: '^_',
                 varsIgnorePattern: '^React$',
@@ -51,7 +54,7 @@ export default [
         },
     },
     {
-        files: ['**/*.test.js', 'src/setupTests.js'],
+        files: ['**/*.test.{js,jsx}', 'src/setupTests.js'],
         languageOptions: {
             globals: {
                 ...globals.browser,
