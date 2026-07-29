@@ -258,7 +258,7 @@ export function createApp({
             },
         }));
 
-        app.get('*', (req, res) => {
+        app.get(/.*/, (req, res) => {
             res.setHeader('Cache-Control', 'no-cache');
             res.sendFile(path.join(buildPath, 'index.html'));
         });

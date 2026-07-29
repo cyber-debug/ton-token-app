@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { Cell } from '@ton/core';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
@@ -120,5 +123,27 @@ describe('VORIX API', () => {
 
         const missing = await request(testApp()).get('/api/nope').expect(404);
         expect(missing.body.code).toBe('NOT_FOUND');
+    });
+
+    it('serves the SPA entry point for nested client routes', async () => {
+        const buildPath = fs.mkdtempSync(path.join(os.tmpdir(), 'vorix-build-'));
+        fs.writeFileSync(
+            path.join(buildPath, 'index.html'),
+            '<!doctype html><title>VORIX test shell</title>'
+        );
+
+        try {
+            const app = createApp({
+                appConfig: TEST_CONFIG,
+                services: createServices(TEST_CONFIG),
+                buildPath,
+            });
+            const response = await request(app).get('/profile').expect(200);
+
+            expect(response.text).toContain('VORIX test shell');
+            expect(response.headers['cache-control']).toBe('no-cache');
+        } finally {
+            fs.rmSync(buildPath, { recursive: true, force: true });
+        }
     });
 });
